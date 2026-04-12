@@ -110,7 +110,7 @@
     box-shadow: 0 0 30px rgba(125,249,194,0.3);
   }
 
-  /* HERO /*/
+  /* HERO */
   .hero {
     min-height: 100vh;
     display: flex;
@@ -774,12 +774,12 @@
     <a href="#">About</a>
     <a href="#">API Docs</a>
     <a href="#">Privacy</a>
-    <a href="mailto:hello@getsenti.org">Contact</a>
+    <a href="/cdn-cgi/l/email-protection#b4dcd1d8d8dbf4d3d1c0c7d1dac0dd9adbc6d3">Contact</a>
   </div>
   <p class="footer-copy">© 2026 Getsenti. All rights reserved.</p>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   // Cursor
   const cursor = document.getElementById('cursor');
   const ring = document.getElementById('cursorRing');
@@ -832,16 +832,11 @@
       setTimeout(() => document.getElementById(inputId).style.borderColor = '', 1500);
       return;
     }
-    // Here you'd connect to Mailchimp or your backend
-    document.getElementById('waitlistHero').style.display = 'none';
-    document.getElementById('waitlistBottom').style.display = 'none';
+    // Send to Mailchimp hidden form
+    document.getElementById('mc-email').value = email;
+    document.getElementById('mc-form').submit();
+    // Show success UI
+    document.getElementById('waitlistHero') && (document.getElementById('waitlistHero').style.display = 'none');
+    document.getElementById('waitlistBottom') && (document.getElementById('waitlistBottom').style.display = 'none');
     document.getElementById('successMsg').style.display = 'block';
-    document.querySelector('.hero-note').textContent = '✓ You\'re on the list!';
-  }
-
-  function scrollToWaitlist() {
-    document.getElementById('waitlist').scrollIntoView({ behavior: 'smooth' });
-  }
-</script>
-</body>
-</html>
+    document.querySelector('.hero-note').textContent = '✓ You\'re on the list!'
