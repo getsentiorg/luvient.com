@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GetSenti — Feedback</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #05080f;
+    --surface: #0c1220;
+    --border: rgba(255,255,255,0.07);
+    --accent: #7DF9C2;
+    --accent2: #4FC3F7;
+    --text: #e8edf5;
+    --muted: #6b7a99;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 24px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .logo span { color: var(--accent); text-shadow: 0 0 20px rgba(125,249,194,0.6); }
+
+  .nav-cta {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+  }
+  .nav-cta:hover {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 30px rgba(125,249,194,0.3);
+  }
+
+  /* MAIN */
+  .feedback-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 140px 24px 100px;
+    position: relative;
+  }
+
+  /* Background orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+  .orb-1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; }
+  .orb-2 { width: 300px; height: 300px; background: var(--accent2); bottom: -50px; left: -80px; }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 48px);
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .page-sub {
+    font-size: 17px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 48px;
+  }
+
+  /* FORM */
+  .feedback-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  .form-label .optional {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 6px;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    width: 100%;
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder { color: var(--muted); }
+
+  .form-input:focus,
+  .form-textarea:focus,
+  .form-select:focus {
+    border-color: rgba(125,249,194,0.4);
+    box-shadow: 0 0 0 4px rgba(125,249,194,0.06);
+  }
+
+  .form-textarea {
+    min-height: 140px;
+    resize: vertical;
+    line-height: 1.7;
+  }
+
+  .form-select {
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a99' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+  }
+
+  .form-select option {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  /* EMOJI RATING */
+  .rating-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .rating-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rating-btn:hover {
+    border-color: rgba(125,249,194,0.3);
+    background: rgba(125,249,194,0.06);
+    transform: translateY(-3px);
+  }
+
+  .rating-btn.selected {
+    border-color: var(--accent);
+    background: rgba(125,249,194,0.12);
+    box-shadow: 0 0 20px rgba(125,249,194,0.15);
+    transform: translateY(-3px);
+  }
+
+  .rating-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  .rating-labels span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* SUBMIT */
+  .submit-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 100px;
+    padding: 18px 36px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 8px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(125,249,194,0.35);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* SUCCESS */
+  .success-state {
+    display: none;
+    text-align: center;
+    padding: 60px 0;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .success-icon {
+    font-size: 64px;
+    margin-bottom: 24px;
+  }
+
+  .success-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+
+  .success-sub {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 15px;
+    transition: opacity 0.2s;
+  }
+
+  .back-link:hover { opacity: 0.8; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer .logo { font-size: 18px; }
+
+  .footer-copy {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    .feedback-page { padding: 120px 20px 80px; }
+    footer { flex-direction: column; text-align: center; }
+    .rating-btn { width: 48px; height: 48px; font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="senti-landing (1).html" class="logo">GetSen<span>ti</span></a>
+  <a href="senti-landing (1).html" class="nav-cta">Back to Home</a>
+</nav>
+
+<!-- FEEDBACK FORM -->
+<div class="feedback-page">
+  <span class="section-label">Early Access Feedback</span>
+  <h1 class="page-title">Help us build<br>what you need.</h1>
+  <p class="page-sub">GetSenti is in its earliest stage. Your honest feedback directly shapes what we build next. Takes 2 minutes.</p>
+
+  <form class="feedback-form" id="feedbackForm" action="https://formsubmit.co/hello@getsenti.org" method="POST">
+    <!-- FormSubmit config -->
+    <input type="hidden" name="_subject" value="New GetSenti Feedback">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_template" value="box">
+    <input type="hidden" name="_next" value="">
+    <input type="text" name="_honey" style="display:none">
+
+    <input type="hidden" name="rating" id="ratingInput" value="">
+
+    <div class="form-group">
+      <label class="form-label">How was your experience? <span class="optional">*</span></label>
+      <div class="rating-row">
+        <button type="button" class="rating-btn" data-rating="1" data-label="Terrible" onclick="setRating(this)">😠</button>
+        <button type="button" class="rating-btn" data-rating="2" data-label="Bad" onclick="setRating(this)">😕</button>
+        <button type="button" class="rating-btn" data-rating="3" data-label="Okay" onclick="setRating(this)">😐</button>
+        <button type="button" class="rating-btn" data-rating="4" data-label="Good" onclick="setRating(this)">😊</button>
+        <button type="button" class="rating-btn" data-rating="5" data-label="Amazing" onclick="setRating(this)">🤩</button>
+      </div>
+      <div class="rating-labels">
+        <span>Terrible</span>
+        <span>Amazing</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">What did you try?</label>
+      <select class="form-select" name="feature_tried" required>
+        <option value="" disabled selected>Select an option</option>
+        <option value="Demo Chat">Demo Chat — Emotional AI</option>
+        <option value="Slider + Context Object">Slider + Context Object</option>
+        <option value="Both">Both</option>
+        <option value="Just browsing">Just browsing the landing page</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">What did you think? <span class="optional">*</span></label>
+      <textarea class="form-textarea" name="feedback" placeholder="What worked? What didn't? What would you want this to do?" required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">What would make you use GetSenti?</label>
+      <textarea class="form-textarea" name="use_case" placeholder="Describe your ideal use case — therapy app, productivity tool, gaming, education..." style="min-height: 100px;"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Your email <span class="optional">optional — if you want us to follow up</span></label>
+      <input class="form-input" type="email" name="email" placeholder="you@example.com">
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Send Feedback</button>
+  </form>
+
+  <!-- SUCCESS STATE -->
+  <div class="success-state" id="successState">
+    <div class="success-icon">💚</div>
+    <h2 class="success-title">Thank you.</h2>
+    <p class="success-sub">Your feedback means everything at this stage.<br>We read every single one.</p>
+    <a href="senti-landing (1).html" class="back-link">← Back to GetSenti</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a href="senti-landing (1).html" class="logo">GetSen<span>ti</span></a>
+  <p class="footer-copy">© 2026 GetSenti. All rights reserved.</p>
+</footer>
+
+<script>
+  // Rating selection
+  function setRating(btn) {
+    document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('ratingInput').value = btn.dataset.rating + '/5 — ' + btn.dataset.label;
+  }
+
+  // Form submission
+  const form = document.getElementById('feedbackForm');
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    })
+    .then(res => {
+      form.style.display = 'none';
+      document.getElementById('successState').style.display = 'block';
+    })
+    .catch(() => {
+      form.style.display = 'none';
+      document.getElementById('successState').style.display = 'block';
+    });
+  });
+</script>
+</body>
+</html>
