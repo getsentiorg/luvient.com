@@ -770,7 +770,7 @@
 
       <div class="input-area">
         <div class="no-api-banner" id="noApiBanner">
-          ⚠ Could not reach Luvient API. Responses may be unavailable.
+          ⚠ API is waking up — this can take up to 60 seconds on first load. Please wait or try sending a message in a moment.
         </div>
 
         <div class="chips">
@@ -854,22 +854,37 @@
       document.getElementById('contextJson').innerHTML = lines.join('\n');
     }
 
-    // ── API status check ───────────────────────────────────────────
+    // ── API status check (with wake-up retry for Render free tier) ──
     async function checkApi() {
       const el = document.getElementById('apiStatus');
-      try {
-        const r = await fetch(API_BASE + '/health', { signal: AbortSignal.timeout(5000) });
-        if (r.ok) {
-          apiOnline = true;
-          el.textContent = '⬤ Connected to Luvient API';
-          el.className = 'api-status connected';
-          return;
-        }
-      } catch(_) {}
-      apiOnline = false;
-      el.textContent = '○ API Unreachable';
+      const banner = document.getElementById('noApiBanner');
+      el.textContent = '○ Connecting…';
       el.className = 'api-status';
-      document.getElementById('noApiBanner').style.display = 'block';
+
+      // Render free tier cold starts can take 30–60s — retry 3 times with increasing timeouts
+      const timeouts = [10000, 25000, 40000];
+      for (let i = 0; i < timeouts.length; i++) {
+        try {
+          const r = await fetch(API_BASE + '/', { signal: AbortSignal.timeout(timeouts[i]) });
+          if (r.ok) {
+            apiOnline = true;
+            el.textContent = '⬤ Connected to Luvient API';
+            el.className = 'api-status connected';
+            banner.style.display = 'none';
+            return;
+          }
+        } catch(_) {
+          if (i < timeouts.length - 1) {
+            el.textContent = `○ Waking up API… (${i + 1}/3)`;
+          }
+        }
+      }
+
+      // All retries failed
+      apiOnline = false;
+      el.textContent = '○ API Unavailable';
+      el.className = 'api-status';
+      banner.style.display = 'block';
     }
 
     // ── Chat ───────────────────────────────────────────────────────
@@ -907,31 +922,23 @@ Adapt your response style to match this context:
 
       addMessage('user', text);
 
-      if (!apiOnline) {
-        showTyping();
-        await new Promise(r => setTimeout(r, 800));
-        removeTyping();
-        addMessage('assistant', "I can't reach the Luvient API right now. Please check your connection and try again.");
-        document.getElementById('sendBtn').disabled = false;
-        return;
-      }
-
       showTyping();
 
       try {
+        const es = getEmotionalState();
         const res = await fetch(API_BASE + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [{ role: 'user', content: text }],
-            system: buildSystemPrompt(),
-            emotional_context: {
-              state: getEmotionalState().label,
+            message: text,
+            emotionalState: {
+              state: es.label,
               stress: state.stress,
               focus: state.focus,
               energy: state.energy,
-              heart_rate: state.heartrate
-            }
+              hr: state.heartrate
+            },
+            history: []
           })
         });
 
@@ -939,12 +946,12 @@ Adapt your response style to match this context:
 
         if (!res.ok) throw new Error('API error ' + res.status);
         const data = await res.json();
-        const reply = data.content?.[0]?.text || data.message || data.reply || 'No response received.';
+        const reply = data.reply || data.message || 'No response received.';
         addMessage('assistant', reply);
 
       } catch(err) {
         removeTyping();
-        addMessage('assistant', 'Something went wrong reaching the API. Please try again.');
+        addMessage('assistant', 'Something went wrong. Please try again in a moment.');
         console.error(err);
       }
 
