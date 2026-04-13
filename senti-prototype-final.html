@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>getSenti — Live Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060910;
+    --surface: #0d1424;
+    --surface2: #111827;
+    --border: rgba(255,255,255,0.06);
+    --accent: #7DF9C2;
+    --accent2: #4FC3F7;
+    --warn: #FFB347;
+    --danger: #FF6B6B;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(125,249,194,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(125,249,194,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(6,9,16,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); text-shadow: 0 0 16px rgba(125,249,194,0.5); }
+
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(125,249,194,0.08);
+    border: 1px solid rgba(125,249,194,0.2);
+    padding: 6px 14px;
+    border-radius: 100px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+  .api-setup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .api-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    width: 280px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-input:focus { border-color: rgba(125,249,194,0.3); }
+  .api-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .api-btn:hover { box-shadow: 0 0 20px rgba(125,249,194,0.3); transform: translateY(-1px); }
+  .api-status { font-size: 11px; font-family: var(--font-mono); }
+  .api-status.connected { color: var(--accent); }
+  .api-status.disconnected { color: var(--muted); }
+
+  /* MAIN LAYOUT */
+  .main {
+    padding-top: 70px;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* STATE PANEL */
+  .state-panel {
+    grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+  }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  /* STATE VISUAL */
+  .state-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 0;
+  }
+
+  .state-orb {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s ease;
+  }
+  .state-orb::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 1px solid rgba(125,249,194,0.15);
+    animation: orbPulse 3s ease infinite;
+  }
+  .state-orb::after {
+    content: '';
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    border: 1px solid rgba(125,249,194,0.07);
+    animation: orbPulse 3s ease infinite 0.5s;
+  }
+  @keyframes orbPulse {
+    0%,100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.08); opacity: 0.3; }
+  }
+
+  .state-emoji { font-size: 42px; z-index: 1; }
+
+  .state-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+    text-align: center;
+  }
+
+  .state-desc {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+    max-width: 220px;
+  }
+
+  /* SLIDERS */
+  .sliders { display: flex; flex-direction: column; gap: 20px; }
+
+  .slider-group { display: flex; flex-direction: column; gap: 10px; }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .slider-label {
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-icon { font-size: 16px; }
+
+  .slider-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(125,249,194,0.08);
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(125,249,194,0.15);
+    min-width: 48px;
+    text-align: center;
+  }
+
+  .slider-track {
+    position: relative;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .slider-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.3s ease;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    outline: none;
+    position: absolute;
+    top: 0; left: 0;
+    cursor: pointer;
+    margin: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  /* CONTEXT OUTPUT */
+  .context-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .context-json {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+  .context-json .key { color: var(--accent2); }
+  .context-json .val-high { color: var(--danger); }
+  .context-json .val-mid { color: var(--warn); }
+  .context-json .val-low { color: var(--accent); }
+  .context-json .val-str { color: #c4b5fd; }
+
+  /* CHAT AREA */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 70px);
+  }
+
+  .chat-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .chat-header-left { display: flex; flex-direction: column; gap: 4px; }
+
+  .chat-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+
+  .chat-subtitle { font-size: 12px; color: var(--muted); }
+
+  .context-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(125,249,194,0.06);
+    border: 1px solid rgba(125,249,194,0.15);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    transition: all 0.3s;
+  }
+
+  /* MESSAGES */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .message {
+    display: flex;
+    gap: 14px;
+    animation: msgIn 0.4s ease both;
+    max-width: 80%;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+  .message.assistant { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .message.user .msg-avatar {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  .message.assistant .msg-avatar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .msg-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .msg-bubble {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    position: relative;
+  }
+  .message.user .msg-bubble {
+    background: linear-gradient(135deg, rgba(125,249,194,0.15), rgba(79,195,247,0.15));
+    border: 1px solid rgba(125,249,194,0.2);
+    border-top-right-radius: 4px;
+  }
+  .message.assistant .msg-bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+
+  .msg-context-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .message.user .msg-context-tag { justify-content: flex-end; }
+
+  .context-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(125,249,194,0.06);
+    border: 1px solid rgba(125,249,194,0.12);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 10px;
+    color: var(--accent);
+  }
+
+  /* TYPING INDICATOR */
+  .typing {
+    display: flex;
+    gap: 5px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    width: fit-content;
+  }
+  .typing span {
+    width: 6px; height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: typing 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* INPUT */
+  .chat-input-area {
+    padding: 20px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    resize: none;
+    min-height: 52px;
+    max-height: 140px;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+  .chat-input:focus { border-color: rgba(125,249,194,0.3); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 52px; height: 52px;
+    background: var(--accent);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(125,249,194,0.3); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .send-btn svg { width: 20px; height: 20px; fill: var(--bg); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--muted);
+    padding: 40px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; opacity: 0.4; }
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    opacity: 0.4;
+  }
+  .empty-sub { font-size: 14px; max-width: 320px; line-height: 1.6; }
+
+  .suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+  .chip:hover { border-color: rgba(125,249,194,0.3); color: var(--accent); }
+
+  /* NO API WARNING */
+  .no-api-banner {
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #ff9999;
+    text-align: center;
+    margin: 16px 28px 0;
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .state-panel { grid-row: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .api-input { width: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">get<span>Senti</span> <span style="font-size:12px;color:var(--muted);font-family:var(--font-mono);font-weight:400;">prototype v0.1</span></div>
+  <div class="api-setup">
+    <span class="api-status connected" id="apiStatus">⬤ Connected to getSenti API</span>
+  </div>
+  <div class="header-badge">
+    <div class="live-dot"></div>
+    LIVE DEMO
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- STATE PANEL -->
+  <div class="state-panel">
+
+    <div>
+      <div class="panel-title">// emotional state</div>
+      <div class="state-visual">
+        <div class="state-orb" id="stateOrb" style="background: radial-gradient(circle, rgba(125,249,194,0.2) 0%, transparent 70%);">
+          <div class="state-emoji" id="stateEmoji">😐</div>
+        </div>
+        <div class="state-name" id="stateName">Neutral</div>
+        <div class="state-desc" id="stateDesc">Your emotional state is balanced. AI will respond normally.</div>
+      </div>
+    </div>
+
+    <div class="sliders">
+      <div class="panel-title">// biometric input</div>
+
+      <!-- Stress -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <div class="slider-label"><span class="slider-icon">😰</span> Stress Level</div>
+          <div class="slider-value" id="stressVal">50%</div>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="stressFill" style="width:50%; background: linear-gradient(90deg, #7DF9C2, #FF6B6B);"></div>
+          <input type="range" min="0" max="100" value="50" id="stressSlider" oninput="updateState()">
+        </div>
+      </div>
+
+      <!-- Focus -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <div class="slider-label"><span class="slider-icon">🎯</span> Focus Level</div>
+          <div class="slider-value" id="focusVal">50%</div>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="focusFill" style="width:50%; background: linear-gradient(90deg, #4FC3F7, #7DF9C2);"></div>
+          <input type="range" min="0" max="100" value="50" id="focusSlider" oninput="updateState()">
+        </div>
+      </div>
+
+      <!-- Energy -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <div class="slider-label"><span class="slider-icon">⚡</span> Energy Level</div>
+          <div class="slider-value" id="energyVal">50%</div>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="energyFill" style="width:50%; background: linear-gradient(90deg, #FFB347, #7DF9C2);"></div>
+          <input type="range" min="0" max="100" value="50" id="energySlider" oninput="updateState()">
+        </div>
+      </div>
+
+      <!-- Heart Rate -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <div class="slider-label"><span class="slider-icon">❤️</span> Heart Rate</div>
+          <div class="slider-value" id="hrVal">72 BPM</div>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="hrFill" style="width:37%; background: linear-gradient(90deg, #FF6B6B, #FFB347);"></div>
+          <input type="range" min="50" max="160" value="72" id="hrSlider" oninput="updateState()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Context JSON -->
+    <div>
+      <div class="panel-title" style="margin-bottom:10px;">// senti context object</div>
+      <div class="context-box">
+        <div class="context-json" id="contextJson"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-title">getSenti AI Chat</div>
+        <div class="chat-subtitle">AI responses adapt to your emotional state in real time</div>
+      </div>
+      <div class="context-pill" id="contextPill">
+        <div class="live-dot"></div>
+        <span id="contextPillText">State: Neutral · HR: 72bpm</span>
+      </div>
+    </div>
+
+    <div id="noapiBanner" class="no-api-banner">
+      ⚠️ Connect your Anthropic API key above to start chatting with emotionally-aware AI
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🧠</div>
+        <div class="empty-title">Emotional Context Ready</div>
+        <div class="empty-sub">Adjust your emotional state on the left, then send a message. Watch how the AI responds differently based on how you feel.</div>
+        <div class="suggestion-chips">
+          <div class="chip" onclick="sendSuggestion(this)">Help me focus on my work</div>
+          <div class="chip" onclick="sendSuggestion(this)">I need to make a decision</div>
+          <div class="chip" onclick="sendSuggestion(this)">Give me a motivational message</div>
+          <div class="chip" onclick="sendSuggestion(this)">Help me calm down</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="Type a message... (AI will respond based on your emotional state)" rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── STATE ──
+  let apiKey = '';
+  let isConnected = false;
+  let isLoading = false;
+  let conversationHistory = [];
+
+  // ── API CONNECTION ──
+  const BACKEND_URL = 'https://getsenti-backend.onrender.com'; // Replace after deploying to Render
+  isConnected = true;
+
+  // ── EMOTIONAL STATE ──
+  function getEmotionalState() {
+    const stress = parseInt(document.getElementById('stressSlider').value);
+    const focus = parseInt(document.getElementById('focusSlider').value);
+    const energy = parseInt(document.getElementById('energySlider').value);
+    const hr = parseInt(document.getElementById('hrSlider').value);
+
+    let state = 'Neutral';
+    let emoji = '😐';
+    let desc = 'Your emotional state is balanced.';
+    let orbColor = 'rgba(125,249,194,0.2)';
+
+    if (stress > 70) {
+      state = 'Stressed'; emoji = '😰';
+      desc = 'High stress detected. AI will be calm, supportive and concise.';
+      orbColor = 'rgba(255,107,107,0.25)';
+    } else if (stress > 50 && energy < 40) {
+      state = 'Burnt Out'; emoji = '😩';
+      desc = 'Low energy and elevated stress. AI will be gentle and brief.';
+      orbColor = 'rgba(255,179,71,0.2)';
+    } else if (focus > 70 && stress < 40) {
+      state = 'In The Zone'; emoji = '🎯';
+      desc = 'High focus, low stress. AI will be direct and efficient.';
+      orbColor = 'rgba(79,195,247,0.25)';
+    } else if (energy > 70 && stress < 40) {
+      state = 'Energized'; emoji = '⚡';
+      desc = 'High energy detected. AI will match your enthusiasm.';
+      orbColor = 'rgba(125,249,194,0.3)';
+    } else if (energy < 30 && focus < 30) {
+      state = 'Exhausted'; emoji = '😴';
+      desc = 'Low energy and focus. AI will keep things simple and short.';
+      orbColor = 'rgba(100,116,139,0.3)';
+    } else if (hr > 100) {
+      state = 'Anxious'; emoji = '😟';
+      desc = 'Elevated heart rate. AI will be reassuring and grounding.';
+      orbColor = 'rgba(255,107,107,0.15)';
+    } else if (focus > 60 && energy > 60) {
+      state = 'Focused'; emoji = '💡';
+      desc = 'Good focus and energy. AI will be productive and clear.';
+      orbColor = 'rgba(125,249,194,0.2)';
+    }
+
+    return { stress, focus, energy, hr, state, emoji, desc, orbColor };
+  }
+
+  function updateState() {
+    const s = getEmotionalState();
+
+    // Update values
+    document.getElementById('stressVal').textContent = s.stress + '%';
+    document.getElementById('focusVal').textContent = s.focus + '%';
+    document.getElementById('energyVal').textContent = s.energy + '%';
+    document.getElementById('hrVal').textContent = s.hr + ' BPM';
+
+    // Update fills
+    document.getElementById('stressFill').style.width = s.stress + '%';
+    document.getElementById('focusFill').style.width = s.focus + '%';
+    document.getElementById('energyFill').style.width = s.energy + '%';
+    document.getElementById('hrFill').style.width = ((s.hr - 50) / 110 * 100) + '%';
+
+    // Update orb
+    document.getElementById('stateOrb').style.background = `radial-gradient(circle, ${s.orbColor} 0%, transparent 70%)`;
+    document.getElementById('stateEmoji').textContent = s.emoji;
+    document.getElementById('stateName').textContent = s.state;
+    document.getElementById('stateDesc').textContent = s.desc;
+
+    // Update context pill
+    document.getElementById('contextPillText').textContent = `State: ${s.state} · HR: ${s.hr}bpm`;
+
+    // Update JSON
+    updateContextJSON(s);
+  }
+
+  function updateContextJSON(s) {
+    const level = v => v > 66 ? 'val-high' : v > 33 ? 'val-mid' : 'val-low';
+    document.getElementById('contextJson').innerHTML = `
+<span class="key">{</span>
+  <span class="key">"state"</span>: <span class="val-str">"${s.state}"</span>,
+  <span class="key">"stress"</span>: <span class="${level(s.stress)}">${s.stress}</span>,
+  <span class="key">"focus"</span>: <span class="${level(s.focus)}">${s.focus}</span>,
+  <span class="key">"energy"</span>: <span class="${level(s.energy)}">${s.energy}</span>,
+  <span class="key">"heart_rate"</span>: <span class="${s.hr > 100 ? 'val-high' : s.hr > 80 ? 'val-mid' : 'val-low'}">${s.hr}</span>,
+  <span class="key">"timestamp"</span>: <span class="val-str">"${new Date().toISOString()}"</span>
+<span class="key">}</span>`;
+  }
+
+  // ── BUILD SYSTEM PROMPT ──
+  function buildSystemPrompt(s) {
+    return `You are getSenti AI — an emotionally intelligent assistant that adapts its communication style based on the user's real-time biometric and emotional state data.
+
+CURRENT USER STATE (from getSenti API):
+- Emotional State: ${s.state}
+- Stress Level: ${s.stress}/100 ${s.stress > 70 ? '(HIGH)' : s.stress > 40 ? '(MODERATE)' : '(LOW)'}
+- Focus Level: ${s.focus}/100 ${s.focus > 70 ? '(HIGH)' : s.focus > 40 ? '(MODERATE)' : '(LOW)'}
+- Energy Level: ${s.energy}/100 ${s.energy > 70 ? '(HIGH)' : s.energy > 40 ? '(MODERATE)' : '(LOW)'}
+- Heart Rate: ${s.hr} BPM ${s.hr > 100 ? '(ELEVATED)' : s.hr > 80 ? '(NORMAL-HIGH)' : '(CALM)'}
+
+ADAPTATION RULES:
+${s.stress > 70 ? '- User is STRESSED: Be calm, warm, and concise. Break things into small steps. Avoid overwhelming information. Lead with reassurance.' : ''}
+${s.state === 'Burnt Out' ? '- User is BURNT OUT: Be very brief. Show empathy first. Suggest breaks. No long lists.' : ''}
+${s.state === 'In The Zone' ? '- User is IN THE ZONE: Be direct and efficient. No fluff. Give information densely. Respect their focus.' : ''}
+${s.state === 'Energized' ? '- User is ENERGIZED: Match their energy. Be enthusiastic. Bold ideas welcome. They can handle complexity.' : ''}
+${s.state === 'Exhausted' ? '- User is EXHAUSTED: Keep responses very short. Simple language. One thing at a time. Be gentle.' : ''}
+${s.state === 'Anxious' ? '- User is ANXIOUS: Be grounding and calm. Slow down. Use reassuring language. Avoid urgency.' : ''}
+${s.state === 'Focused' ? '- User is FOCUSED: Be productive and clear. Structured responses. They are ready to work.' : ''}
+${s.state === 'Neutral' ? '- User is NEUTRAL: Respond naturally and helpfully.' : ''}
+
+Always acknowledge the user's state subtly through your tone — not by explicitly mentioning their biometrics unless asked. You are demonstrating the power of emotionally-aware AI.`;
+  }
+
+  // ── SEND MESSAGE ──
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg || isLoading) return;
+
+
+
+    // Hide empty state
+    document.getElementById('emptyState')?.remove();
+
+    const state = getEmotionalState();
+
+    // Add user message
+    addMessage('user', msg, state);
+    conversationHistory.push({ role: 'user', content: msg });
+
+    input.value = '';
+    input.style.height = 'auto';
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    // Show typing
+    const typingId = showTyping();
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg,
+          emotionalState: state,
+          history: conversationHistory.slice(-6)
+        })
+      });
+
+      const data = await response.json();
+      removeTyping(typingId);
+
+      if (data.reply) {
+        conversationHistory.push({ role: 'assistant', content: data.reply });
+        addMessage('assistant', data.reply, state);
+      } else if (data.error) {
+        addMessage('assistant', data.error, state);
+      } else {
+        addMessage('assistant', 'Something went wrong. Please try again.', state);
+      }
+    } catch (err) {
+      removeTyping(typingId);
+      addMessage('assistant', 'Connection error. Please check your API key and internet connection.', state);
+    }
+
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+  function sendSuggestion(el) {
+    document.getElementById('chatInput').value = el.textContent;
+    sendMessage();
+  }
+
+  function addMessage(role, text, state) {
+    const messages = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+
+    const avatar = role === 'user' ? '👤' : '🧠';
+    const contextTag = role === 'assistant'
+      ? `<div class="msg-context-tag"><span class="context-indicator"><span>${state.emoji}</span>${state.state} · ${state.stress}% stress</span></div>`
+      : `<div class="msg-context-tag">You · ${state.state} state</div>`;
+
+    div.innerHTML = `
+      <div class="msg-avatar">${avatar}</div>
+      <div class="msg-content">
+        <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+        ${contextTag}
+      </div>`;
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function showTyping() {
+    const messages = document.getElementById('messages');
+    const div = document.createElement('div');
+    const id = 'typing-' + Date.now();
+    div.id = id;
+    div.className = 'message assistant';
+    div.innerHTML = `
+      <div class="msg-avatar">🧠</div>
+      <div class="msg-content">
+        <div class="typing"><span></span><span></span><span></span></div>
+      </div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return id;
+  }
+
+  function removeTyping(id) {
+    document.getElementById(id)?.remove();
+  }
+
+  // Init
+  updateState();
+</script>
+</body>
+</html>
