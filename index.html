@@ -587,6 +587,94 @@
     animation: fadeUp 0.5s ease both;
   }
 
+  /* DEMO SECTION */
+  .demo-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 24px 120px;
+    text-align: center;
+  }
+
+  .demo-container {
+    margin-top: 48px;
+    border-radius: 20px;
+    border: 1px solid rgba(125,249,194,0.15);
+    overflow: hidden;
+    position: relative;
+    background: var(--surface);
+    box-shadow: 0 0 80px rgba(125,249,194,0.05), 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .demo-container iframe {
+    width: 100%;
+    height: 700px;
+    border: none;
+    display: block;
+  }
+
+  .demo-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 70%, var(--bg) 100%);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .demo-container:not(.active) .demo-overlay {
+    opacity: 1;
+    pointer-events: all;
+    background: rgba(6,9,16,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .demo-play-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text);
+  }
+
+  .demo-play-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(125,249,194,0.15);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    transition: all 0.3s;
+    box-shadow: 0 0 30px rgba(125,249,194,0.2);
+  }
+
+  .demo-container:not(.active) .demo-overlay:hover .demo-play-icon {
+    background: rgba(125,249,194,0.25);
+    transform: scale(1.1);
+    box-shadow: 0 0 50px rgba(125,249,194,0.3);
+  }
+
+  .demo-play-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .demo-play-sub {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 768px) {
+    .demo-container iframe { height: 500px; }
+  }
+
   /* DIVIDER */
   .full-divider {
     width: 100%;
@@ -715,6 +803,26 @@
       <p>That context is passed into any AI system via our simple API. The AI now knows how you feel and adapts its tone, pacing, and content accordingly.</p>
       <span class="step-tag">Any AI, Any App</span>
     </div>
+  </div>
+</div>
+
+<div class="full-divider"></div>
+
+<!-- LIVE DEMO -->
+<div class="demo-section">
+  <span class="section-label reveal">Try It Now</span>
+  <h2 class="section-title reveal">See GetSenti in action.</h2>
+  <p class="section-body reveal" style="margin: 0 auto;">Adjust the biometric sliders and watch how the AI adapts its tone, pacing, and personality in real time based on your emotional state.</p>
+
+  <div class="demo-container reveal" id="demoContainer">
+    <div class="demo-overlay" onclick="activateDemo()">
+      <div class="demo-play-btn">
+        <div class="demo-play-icon">▶</div>
+        <div class="demo-play-text">Launch Live Demo</div>
+        <div class="demo-play-sub">Interactive — no install required</div>
+      </div>
+    </div>
+    <iframe id="demoFrame" loading="lazy"></iframe>
   </div>
 </div>
 
@@ -871,6 +979,13 @@
       emailEl.placeholder = 'Try again…';
       setTimeout(() => { emailEl.style.borderColor = ''; emailEl.placeholder = 'Enter your email'; }, 2500);
     });
+  }
+
+  function activateDemo() {
+    const container = document.getElementById('demoContainer');
+    const frame = document.getElementById('demoFrame');
+    frame.src = 'https://getsenti.org/demo.html';
+    container.classList.add('active');
   }
 
   function scrollToWaitlist() {
