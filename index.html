@@ -671,10 +671,6 @@
     color: var(--muted);
   }
 
-  @media (max-width: 768px) {
-    .demo-container iframe { height: 500px; }
-  }
-
   /* DIVIDER */
   .full-divider {
     width: 100%;
@@ -693,12 +689,114 @@
     transform: translateY(0);
   }
 
+  /* ===== TABLET ===== */
   @media (max-width: 768px) {
-    nav { padding: 20px 24px; }
+    /* Hide custom cursor on touch devices */
+    .cursor, .cursor-ring { display: none; }
+    body { cursor: auto; }
+    .nav-cta, .waitlist-btn { cursor: pointer; }
+
+    /* Nav */
+    nav { padding: 16px 20px; }
+    .nav-cta { padding: 8px 18px; font-size: 13px; }
+
+    /* Hero */
+    .hero { padding: 100px 20px 60px; min-height: auto; }
+    h1 { font-size: clamp(36px, 7vw, 64px); letter-spacing: -1.5px; margin-bottom: 20px; }
+    .hero-sub { font-size: 16px; margin-bottom: 36px; }
+    .hero-badge { font-size: 11px; margin-bottom: 28px; padding: 6px 14px; }
+    .waitlist-form { flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+    .waitlist-input { width: 100%; max-width: 340px; padding: 14px 22px; }
+    .waitlist-btn { width: 100%; max-width: 340px; padding: 14px 24px; }
+    .hero-note { font-size: 12px; }
+    .hero-social-proof { flex-direction: column; gap: 10px; margin-top: 40px; }
+    .proof-text { font-size: 12px; }
+
+    /* Sections general */
+    section { padding: 80px 20px; }
+    .section-title { font-size: clamp(26px, 5vw, 40px); }
+    .section-body { font-size: 16px; }
+
+    /* Problem section */
+    .problem-section { padding: 60px 20px 80px; }
+    .problem-cards { grid-template-columns: 1fr; gap: 16px; margin-top: 40px; }
+    .problem-card { padding: 28px 24px; }
+
+    /* How it works */
+    .how-section { padding: 60px 20px 80px; }
+    .steps { grid-template-columns: 1fr; gap: 20px; margin-top: 40px; }
+    .step { padding: 32px 24px; }
+    .step-number { font-size: 48px; }
+
+    /* Demo section */
+    .demo-section { padding: 60px 20px 80px; }
+    .demo-container iframe { height: 500px; }
+    .demo-play-icon { width: 64px; height: 64px; font-size: 26px; }
+    .demo-play-text { font-size: 16px; }
+
+    /* Vision section */
+    .vision-section { padding: 60px 20px 80px; }
     .vision-grid { grid-template-columns: 1fr; gap: 48px; }
     .vision-visual { height: 260px; }
-    footer { flex-direction: column; text-align: center; }
-    .waitlist-input { width: 100%; max-width: 320px; }
+    .vision-stats { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .stat { padding: 20px 18px; }
+    .stat-val { font-size: 28px; }
+    .stat-label { font-size: 12px; }
+
+    /* CTA section */
+    .cta-section { padding: 60px 20px 80px; }
+    .cta-section h2 { font-size: clamp(28px, 5vw, 48px); }
+    .cta-section p { font-size: 16px; margin-bottom: 32px; }
+
+    /* Footer */
+    footer { flex-direction: column; text-align: center; padding: 32px 20px; gap: 20px; }
+    .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+  }
+
+  /* ===== SMALL PHONE (375px target) ===== */
+  @media (max-width: 480px) {
+    nav { padding: 14px 16px; }
+    .logo { font-size: 20px; }
+    .nav-cta { padding: 7px 14px; font-size: 12px; }
+
+    .hero { padding: 90px 16px 48px; }
+    h1 { font-size: clamp(30px, 9vw, 44px); letter-spacing: -1px; }
+    .hero-sub { font-size: 15px; line-height: 1.6; }
+    .waitlist-input { max-width: 100%; padding: 13px 18px; font-size: 14px; }
+    .waitlist-btn { max-width: 100%; padding: 13px 20px; font-size: 14px; }
+
+    .problem-section { padding: 48px 16px 64px; }
+    .problem-card { padding: 24px 20px; border-radius: 16px; }
+    .problem-card h3 { font-size: 16px; }
+    .problem-card p { font-size: 14px; }
+
+    .how-section { padding: 48px 16px 64px; }
+    .step { padding: 28px 20px; border-radius: 18px; }
+    .step h3 { font-size: 18px; }
+    .step p { font-size: 14px; }
+
+    .demo-section { padding: 48px 16px 64px; }
+    .demo-container iframe { height: 420px; }
+    .demo-container { border-radius: 14px; }
+    .demo-play-icon { width: 56px; height: 56px; font-size: 22px; }
+    .demo-play-text { font-size: 14px; }
+    .demo-play-sub { font-size: 11px; }
+
+    .vision-section { padding: 48px 16px 64px; }
+    .vision-stats { grid-template-columns: 1fr; gap: 12px; }
+    .stat-val { font-size: 24px; }
+    .vision-visual { height: 200px; }
+    .pulse-rings { width: 150px; height: 150px; }
+    .pulse-core { width: 60px; height: 60px; font-size: 22px; }
+
+    .cta-section { padding: 48px 16px 64px; }
+    .cta-section h2 { font-size: clamp(24px, 7vw, 36px); }
+    .cta-section p { font-size: 15px; }
+
+    footer { padding: 28px 16px; }
+    .footer-links { gap: 12px; }
+    .footer-links a { font-size: 13px; }
+    .footer-copy { font-size: 12px; }
   }
 </style>
 </head>
